@@ -1,13 +1,32 @@
 #!/usr/bin/env bash
 set -e
 
-mkdir -p /tmp/mirror_repo
-git archive "origin/${CI_DEFAULT_BRANCH}" | tar -x -C /tmp/mirror_repo
-cd /tmp/mirror_repo
-git init
-git config user.email "ci@gitlab"
-git config user.name "GitLab CI"
-git add -A
-printf '%s\n' "$CI_COMMIT_MESSAGE" | git commit -F -
-git remote add github "https://${GITHUB_ACCESS_TOKEN}@${GITHUB_REPO}"
-git push github HEAD:${GITHUB_MIRROR_BRANCH} --force
+git remote add github "https://${GITHUB_ACCESS_TOKEN}@${GITHUB_REPO}" 2>/dev/null || git remote set-url github "https://${GITHUB_ACCESS_TOKEN}@${GITHUB_REPO}"
+git fetch github "${GITHUB_MIRROR_BRANCH}" 2>/dev/null || true
+
+if git rev-parse "github/${GITHUB_MIRROR_BRANCH}" >/dev/null 2>&1; then
+  # Ветка на GitHub уже есть — дополняем историю
+  git checkout -B github_mirror "github/${GITHUB_MIRROR_BRANCH}"
+  mkdir -p /tmp/mirror_repo
+  git archive "origin/${CI_DEFAULT_BRANCH}" | tar -x -C /tmp/mirror_repo
+  (cd /tmp/mirror_repo && tar cf - .) | tar xf -
+  git add -A
+  if [ -n "$(git status --porcelain)" ]; then
+    git config user.email "ci@gitlab"
+    git config user.name "GitLab CI"
+    printf '%s\n' "$CI_COMMIT_MESSAGE" | git commit -F -
+  fi
+  git push github "github_mirror:${GITHUB_MIRROR_BRANCH}"
+else
+  # Первый пуш — создаём репозиторий с одним коммитом
+  mkdir -p /tmp/mirror_repo
+  git archive "origin/${CI_DEFAULT_BRANCH}" | tar -x -C /tmp/mirror_repo
+  cd /tmp/mirror_repo
+  git init
+  git config user.email "ci@gitlab"
+  git config user.name "GitLab CI"
+  git add -A
+  printf '%s\n' "$CI_COMMIT_MESSAGE" | git commit -F -
+  git remote add github "https://${GITHUB_ACCESS_TOKEN}@${GITHUB_REPO}"
+  git push github "HEAD:${GITHUB_MIRROR_BRANCH}"
+fi
