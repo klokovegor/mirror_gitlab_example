@@ -58,9 +58,11 @@ src/testTestingRootWkspc/coverageWorkspace/.coverage
 **/packages/**
 **.user**
 **.config**
+
+/Sem1/CMake/build
+/Sem1/MSBuild/bin
+/Sem2/CMake/mycode-tests/build
 /Sem2/CMake/mycode-exe/cmake_msvc
 /Sem2/CMake/mycode-exe/cmake_mingw
 /Sem2/CMake/mycode-exe/cmake_clang
-/Sem1/CMake/build
-/Sem2/CMake/mycode-tests/build
-/Sem1/MSBuild/bin
+
