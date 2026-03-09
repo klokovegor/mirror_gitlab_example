@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -e
+
+mkdir -p /tmp/mirror_repo
+git archive "origin/${CI_DEFAULT_BRANCH}" | tar -x -C /tmp/mirror_repo
+cd /tmp/mirror_repo
+git init
+git config user.email "ci@gitlab"
+git config user.name "GitLab CI"
+git add -A
+printf '%s\n' "$CI_COMMIT_MESSAGE" | git commit -F -
+git remote add github "https://${GITHUB_ACCESS_TOKEN}@${GITHUB_REPO}"
+git push github HEAD:${GITHUB_MIRROR_BRANCH} --force

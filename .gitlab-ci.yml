@@ -1,0 +1,44 @@
+stages:
+  - Build
+  - Unit_Testing
+  - Push
+
+GCC_build:
+  stage: Build
+  tags:
+    - docker
+  image: dshtrigel/gcc_edu:latest
+  script:
+    - bash ./pipeline/pipeline_scripts/build.sh
+  artifacts:
+    expire_in: 24 hour
+    when: always
+    paths:
+      - Sem1/CMake/build/
+
+run-testing:
+  stage: Unit_Testing
+  tags:
+    - docker
+  image: dshtrigel/gcc_edu:latest
+  script:
+    - bash ./pipeline/pipeline_scripts/run_tests.sh
+  artifacts:
+    expire_in: 24 hour
+    when: always
+    paths:
+      - Sem1/CMake/build/
+  needs: [GCC_build]
+
+Push_to_github:
+  stage: Push
+  tags:
+    - docker
+  image: bitnami/git:latest
+  variables:
+    GITHUB_MIRROR_BRANCH: main
+    GITHUB_REPO: github.com/klokovegor/mirror_gitlab_example
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - bash ./pipeline/pipeline_scripts/push_to_github
