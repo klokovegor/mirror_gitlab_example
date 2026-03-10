@@ -48,7 +48,6 @@ Push_to_github:
     - git rm -rfq . 2>/dev/null || true
     # Залить содержимое последнего коммита мастера GitLab
     - git archive "origin/${CI_DEFAULT_BRANCH}" | tar -x -C .
-    - rm -rf testing/oiltransport_schemes/cold_tu_tags_db testing/oiltransport_schemes/hot_tu1
     - git add -A
     - git config user.email "ci@gitlab"
     - git config user.name "GitLab CI"
