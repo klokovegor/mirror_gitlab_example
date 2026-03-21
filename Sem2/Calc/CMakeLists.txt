@@ -11,20 +11,16 @@ endif()
 
 ## Библиотека с кодом заданий (статическая по умолчанию)
 add_library(Tasks STATIC # имя цели (аналог .vcxproj)
-	src/BooleanTasks.cpp src/CaseTasks.cpp
-	src/ForTasks.cpp src/IntegerTasks.cpp
-	src/STL1IterTasks.cpp src/STL2SeqTasks.cpp
-	src/STL3AlgTasks.cpp src/WhileTasks.cpp
-	src/IfTasks.cpp # единицы трансляции
+	src/begining_tasks_hydraulics.cpp # единицы трансляции
 )
 
 ## Сборка тестов
 add_executable(Tests # имя цели
-	Tests/TestBoolean.cpp Tests/TestCase.cpp
-	Tests/TestFor.cpp Tests/TestInteger.cpp
-	Tests/TestSTL1Iter.cpp Tests/TestSTL2Seq.cpp
-	Tests/TestSTL3Alg.cpp Tests/TestWhile.cpp
-	Tests/TestIf.cpp # единицы трансляции
+	test/test_begining_tasks_hydraulics.cpp # единицы трансляции
+)
+
+target_compile_definitions(Tests PRIVATE
+	CALC_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 find_package(GTest REQUIRED)

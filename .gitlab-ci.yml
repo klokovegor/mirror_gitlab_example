@@ -3,32 +3,64 @@ stages:
   - Unit_Testing
   - Push
 
-GCC_build:
+
+Build_Sem1_Project:
   stage: Build
   tags:
     - docker
   image: dshtrigel/gcc_edu:latest
   script:
-    - bash ./pipeline/pipeline_scripts/build.sh
+    - bash ./pipeline/pipeline_scripts/build.sh Sem1/CMake
   artifacts:
     expire_in: 24 hour
     when: always
     paths:
       - Sem1/CMake/build/
 
-run-testing:
+Build_Hydraulics:
+  stage: Build
+  tags:
+    - docker
+  image: dshtrigel/gcc_edu:latest
+  script:
+    - bash ./pipeline/pipeline_scripts/build.sh Sem2/Calc
+  artifacts:
+    expire_in: 24 hour
+    when: always
+    paths:
+      - Sem2/Calc/build/
+
+
+
+Test_Sem1_Project:
   stage: Unit_Testing
   tags:
     - docker
   image: dshtrigel/gcc_edu:latest
   script:
-    - bash ./pipeline/pipeline_scripts/run_tests.sh
+    - bash ./pipeline/pipeline_scripts/run_tests.sh Sem1/CMake
   artifacts:
     expire_in: 24 hour
     when: always
     paths:
       - Sem1/CMake/build/
-  needs: [GCC_build]
+  needs: [Build_Sem1_Project]
+
+Test_Hydraulics:
+  stage: Unit_Testing
+  tags:
+    - docker
+  image: dshtrigel/gcc_edu:latest
+  script:
+    - bash ./pipeline/pipeline_scripts/run_tests.sh Sem2/Calc
+  artifacts:
+    expire_in: 24 hour
+    when: always
+    paths:
+      - Sem2/Calc/build/
+  needs: [Build_Hydraulics]
+
+
 
 Push_to_github:
   stage: Push
