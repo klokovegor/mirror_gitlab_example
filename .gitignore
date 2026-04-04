@@ -1,5 +1,9 @@
-
+.vs/
 /Sem1/CMake/build
+/Sem1/CMake/build-mingw
+/Sem1/CMake/build-clang
+/Sem1/MSBuild/packages
+/Sem1/MSBuild/build
 /Sem1/MSBuild/bin
 /Sem2/CMake/mycode-tests/build
 /Sem2/CMake/mycode-exe/cmake_msvc
@@ -8,3 +12,4 @@
 
 build/
 .vscode/
+.cache/

@@ -23,12 +23,12 @@ Build_Hydraulics:
     - docker
   image: dshtrigel/gcc_edu:latest
   script:
-    - bash ./pipeline/pipeline_scripts/build.sh Sem2/Calc
+    - bash ./pipeline/pipeline_scripts/build.sh Sem2/Calc_QP_PP_Solve
   artifacts:
     expire_in: 24 hour
     when: always
     paths:
-      - Sem2/Calc/build/
+      - Sem2/Calc_QP_PP_Solve/build/
 
 
 
@@ -52,12 +52,12 @@ Test_Hydraulics:
     - docker
   image: dshtrigel/gcc_edu:latest
   script:
-    - bash ./pipeline/pipeline_scripts/run_tests.sh Sem2/Calc
+    - bash ./pipeline/pipeline_scripts/run_tests.sh Sem2/Calc_QP_PP_Solve
   artifacts:
     expire_in: 24 hour
     when: always
     paths:
-      - Sem2/Calc/build/
+      - Sem2/Calc_QP_PP_Solve/build/
   needs: [Build_Hydraulics]
 
 

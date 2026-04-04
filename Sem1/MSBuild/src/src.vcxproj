@@ -73,10 +73,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)bin\</OutDir>
     <IntDir>$(SolutionDir)build\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <LocalDebuggerCommand>$(MSBuildThisFileDirectory)..\bin\Tests.exe</LocalDebuggerCommand>
+    <LocalDebuggerWorkingDirectory>$(MSBuildThisFileDirectory)..\bin\</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)bin\</OutDir>
     <IntDir>$(SolutionDir)build\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <LocalDebuggerCommand>$(MSBuildThisFileDirectory)..\bin\Tests.exe</LocalDebuggerCommand>
+    <LocalDebuggerWorkingDirectory>$(MSBuildThisFileDirectory)..\bin\</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

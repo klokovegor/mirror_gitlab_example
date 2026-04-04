@@ -2,37 +2,26 @@
   "version": 3,
   "cmakeMinimumRequired": { "major": 3, "minor": 14, "patch": 0 },
   "configurePresets": [
-    {
-      "name": "debug",
-      "displayName": "Debug",
-      "description": "Сборка Sem2/Calc с отладочной информацией",
-      "binaryDir": "${sourceDir}/build/debug",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
-      }
-    },
-    {
-      "name": "release",
-      "displayName": "Release",
-      "description": "Оптимизированная сборка Sem2/Calc",
-      "binaryDir": "${sourceDir}/build/release",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
-      }
-    }
+        {
+            "name": "Clang 21.1.7 x86_64-w64-windows-gnu (ucrt64)",
+            "displayName": "Clang 21.1.7 x86_64-w64-windows-gnu (ucrt64)",
+            "description": "Using compilers: C = D:/Coding/Editors/msys64/ucrt64/bin/clang.exe, CXX = D:/Coding/Editors/msys64/ucrt64/bin/clang++.exe",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "D:/Coding/Editors/msys64/ucrt64/bin/clang.exe",
+                "CMAKE_CXX_COMPILER": "D:/Coding/Editors/msys64/ucrt64/bin/clang++.exe",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_FLAGS": "-w -Wno-#pragma-messages",
+                "CMAKE_PREFIX_PATH": "C:/Program Files (x86)/googletest-clang"
+            }
+        }
   ],
-  "buildPresets": [
-    {
-      "name": "debug",
-      "displayName": "Debug",
-      "configurePreset": "debug"
-    },
-    {
-      "name": "release",
-      "displayName": "Release",
-      "configurePreset": "release"
-    }
-  ]
+    "buildPresets": [
+        {
+            "name": "Clang 21.1.7 x86_64-w64-windows-gnu (ucrt64)",
+            "configurePreset": "Clang 21.1.7 x86_64-w64-windows-gnu (ucrt64)",
+            "jobs": 8
+        }
+    ]
 }
