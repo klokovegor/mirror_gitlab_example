@@ -9,8 +9,8 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
-                "CMAKE_C_COMPILER": "D:/Coding/Editors/msys64/ucrt64/bin/clang.exe",
-                "CMAKE_CXX_COMPILER": "D:/Coding/Editors/msys64/ucrt64/bin/clang++.exe",
+                "CMAKE_C_COMPILER": "C:/msys64/ucrt64/bin/clang.exe",
+                "CMAKE_CXX_COMPILER": "C:/msys64/ucrt64/bin/clang++.exe",
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_CXX_FLAGS": "-w -Wno-#pragma-messages",
                 "CMAKE_PREFIX_PATH": "C:/Program Files (x86)/googletest-clang"

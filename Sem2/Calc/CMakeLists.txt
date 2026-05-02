@@ -5,23 +5,27 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(Tasks STATIC
-    src/begining_tasks_hydraulics.cpp
-    src/begining_tasks_hydraulics.h
+    src/hydraulic_chain.cpp
+    src/hydraulic_chain.h
+    src/pipe_oil.cpp
+    src/pipe_oil.h
+    src/local_resistance.cpp
+    src/local_resistance.h
+    src/pump.cpp
+    src/pump.h
 )
 
 add_executable(Tests
-    test/test_begining_tasks_hydraulics.cpp
-)
-
-target_compile_definitions(Tests PRIVATE
-    CALC_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+    test/test_hydraulic_chain.cpp
+    test/test_pipe_oil.cpp
+    test/test_local_resistance.cpp
+    test/test_pump.cpp
 )
 
 find_package(GTest REQUIRED)
 
 target_link_libraries(Tests PRIVATE
     Tasks
-    GTest::gtest 
     GTest::gtest_main
 )
 

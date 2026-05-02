@@ -17,18 +17,18 @@ Build_Sem1_Project:
     paths:
       - Sem1/CMake/build/
 
-Build_Hydraulics:
+Build_Calc_Tasks:
   stage: Build
   tags:
     - docker
   image: dshtrigel/gcc_edu:latest
   script:
-    - bash ./pipeline/pipeline_scripts/build.sh Sem2/Calc_QP_PP_Solve
+    - bash ./pipeline/pipeline_scripts/build.sh Sem2/Calc
   artifacts:
     expire_in: 24 hour
     when: always
     paths:
-      - Sem2/Calc_QP_PP_Solve/build/
+      - Sem2/Calc/build/
 
 
 
@@ -46,19 +46,19 @@ Test_Sem1_Project:
       - Sem1/CMake/build/
   needs: [Build_Sem1_Project]
 
-Test_Hydraulics:
+Test_Calc_Tasks:
   stage: Unit_Testing
   tags:
     - docker
   image: dshtrigel/gcc_edu:latest
   script:
-    - bash ./pipeline/pipeline_scripts/run_tests.sh Sem2/Calc_QP_PP_Solve
+    - bash ./pipeline/pipeline_scripts/run_tests.sh Sem2/Calc
   artifacts:
     expire_in: 24 hour
     when: always
     paths:
-      - Sem2/Calc_QP_PP_Solve/build/
-  needs: [Build_Hydraulics]
+      - Sem2/Calc/build/
+  needs: [Build_Calc_Tasks]
 
 
 
