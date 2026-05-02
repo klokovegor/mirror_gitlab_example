@@ -1,27 +1,281 @@
 {
   "version": 3,
-  "cmakeMinimumRequired": { "major": 3, "minor": 14, "patch": 0 },
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+
   "configurePresets": [
-        {
-            "name": "Clang 21.1.7 x86_64-w64-windows-gnu (ucrt64)",
-            "displayName": "Clang 21.1.7 x86_64-w64-windows-gnu (ucrt64)",
-            "description": "Using compilers: C = D:/Coding/Editors/msys64/ucrt64/bin/clang.exe, CXX = D:/Coding/Editors/msys64/ucrt64/bin/clang++.exe",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/${presetName}",
-            "cacheVariables": {
-                "CMAKE_C_COMPILER": "C:/msys64/ucrt64/bin/clang.exe",
-                "CMAKE_CXX_COMPILER": "C:/msys64/ucrt64/bin/clang++.exe",
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_CXX_FLAGS": "-w -Wno-#pragma-messages",
-                "CMAKE_PREFIX_PATH": "C:/Program Files (x86)/googletest-clang"
-            }
-        }
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_CXX_STANDARD": "20",
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON"
+      }
+    },
+    {
+      "name": "ninja-base",
+      "hidden": true,
+      "inherits": "base",
+      "generator": "Ninja"
+    },
+    {
+      "name": "windows-base",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "linux-base",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "vcpkg-windows",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_TARGET_TRIPLET": "x64-windows"
+      }
+    },
+    {
+      "name": "vcpkg-linux",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_TARGET_TRIPLET": "x64-linux"
+      }
+    },
+    {
+      "name": "msys-ucrt64",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "C:/msys64/ucrt64"
+      }
+    },
+
+    {
+      "name": "windows-msvc",
+      "displayName": "Windows MSVC (VS 17 2022, vcpkg)",
+      "inherits": ["base", "windows-base", "vcpkg-windows"],
+      "generator": "Visual Studio 17 2022",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      }
+    },
+
+    {
+      "name": "windows-gcc-ucrt64",
+      "displayName": "Windows GCC (MSYS UCRT64) Debug",
+      "inherits": ["ninja-base", "windows-base", "msys-ucrt64"],
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "C:/msys64/ucrt64/bin/gcc.exe",
+        "CMAKE_CXX_COMPILER": "C:/msys64/ucrt64/bin/g++.exe",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "windows-gcc-ucrt64-release",
+      "displayName": "Windows GCC (MSYS UCRT64) Release",
+      "inherits": "windows-gcc-ucrt64",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+
+    {
+      "name": "windows-clang-ucrt64",
+      "displayName": "Windows Clang (MSYS UCRT64) Debug",
+      "inherits": ["ninja-base", "windows-base", "msys-ucrt64"],
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "C:/msys64/ucrt64/bin/clang.exe",
+        "CMAKE_CXX_COMPILER": "C:/msys64/ucrt64/bin/clang++.exe",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "windows-clang-ucrt64-release",
+      "displayName": "Windows Clang (MSYS UCRT64) Release",
+      "inherits": "windows-clang-ucrt64",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+
+    {
+      "name": "linux-gcc",
+      "displayName": "Linux GCC (vcpkg) Debug",
+      "inherits": ["ninja-base", "linux-base", "vcpkg-linux"],
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "linux-gcc-release",
+      "displayName": "Linux GCC (vcpkg) Release",
+      "inherits": "linux-gcc",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+
+    {
+      "name": "linux-clang",
+      "displayName": "Linux Clang (vcpkg) Debug",
+      "inherits": ["ninja-base", "linux-base", "vcpkg-linux"],
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "linux-clang-release",
+      "displayName": "Linux Clang (vcpkg) Release",
+      "inherits": "linux-clang",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
   ],
-    "buildPresets": [
-        {
-            "name": "Clang 21.1.7 x86_64-w64-windows-gnu (ucrt64)",
-            "configurePreset": "Clang 21.1.7 x86_64-w64-windows-gnu (ucrt64)",
-            "jobs": 8
-        }
-    ]
+
+  "buildPresets": [
+    {
+      "name": "build-base",
+      "hidden": true,
+      "jobs": 8
+    },
+
+    {
+      "name": "windows-msvc-debug",
+      "inherits": "build-base",
+      "configurePreset": "windows-msvc",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-msvc-release",
+      "inherits": "build-base",
+      "configurePreset": "windows-msvc",
+      "configuration": "Release"
+    },
+
+    {
+      "name": "windows-gcc-ucrt64-debug",
+      "inherits": "build-base",
+      "configurePreset": "windows-gcc-ucrt64"
+    },
+    {
+      "name": "windows-gcc-ucrt64-release",
+      "inherits": "build-base",
+      "configurePreset": "windows-gcc-ucrt64-release"
+    },
+
+    {
+      "name": "windows-clang-ucrt64-debug",
+      "inherits": "build-base",
+      "configurePreset": "windows-clang-ucrt64"
+    },
+    {
+      "name": "windows-clang-ucrt64-release",
+      "inherits": "build-base",
+      "configurePreset": "windows-clang-ucrt64-release"
+    },
+
+    {
+      "name": "linux-gcc-debug",
+      "inherits": "build-base",
+      "configurePreset": "linux-gcc"
+    },
+    {
+      "name": "linux-gcc-release",
+      "inherits": "build-base",
+      "configurePreset": "linux-gcc-release"
+    },
+
+    {
+      "name": "linux-clang-debug",
+      "inherits": "build-base",
+      "configurePreset": "linux-clang"
+    },
+    {
+      "name": "linux-clang-release",
+      "inherits": "build-base",
+      "configurePreset": "linux-clang-release"
+    }
+  ],
+
+  "testPresets": [
+    {
+      "name": "test-base",
+      "hidden": true,
+      "output": { "outputOnFailure": true },
+      "execution": { "stopOnFailure": false, "jobs": 8 }
+    },
+
+    {
+      "name": "windows-msvc-debug",
+      "inherits": "test-base",
+      "configurePreset": "windows-msvc",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-msvc-release",
+      "inherits": "test-base",
+      "configurePreset": "windows-msvc",
+      "configuration": "Release"
+    },
+
+    {
+      "name": "windows-gcc-ucrt64-debug",
+      "inherits": "test-base",
+      "configurePreset": "windows-gcc-ucrt64"
+    },
+    {
+      "name": "windows-gcc-ucrt64-release",
+      "inherits": "test-base",
+      "configurePreset": "windows-gcc-ucrt64-release"
+    },
+
+    {
+      "name": "windows-clang-ucrt64-debug",
+      "inherits": "test-base",
+      "configurePreset": "windows-clang-ucrt64"
+    },
+    {
+      "name": "windows-clang-ucrt64-release",
+      "inherits": "test-base",
+      "configurePreset": "windows-clang-ucrt64-release"
+    },
+
+    {
+      "name": "linux-gcc-debug",
+      "inherits": "test-base",
+      "configurePreset": "linux-gcc"
+    },
+    {
+      "name": "linux-gcc-release",
+      "inherits": "test-base",
+      "configurePreset": "linux-gcc-release"
+    },
+
+    {
+      "name": "linux-clang-debug",
+      "inherits": "test-base",
+      "configurePreset": "linux-clang"
+    },
+    {
+      "name": "linux-clang-release",
+      "inherits": "test-base",
+      "configurePreset": "linux-clang-release"
+    }
+  ]
 }

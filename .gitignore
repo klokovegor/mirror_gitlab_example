@@ -11,5 +11,5 @@
 /Sem2/CMake/mycode-exe/cmake_clang
 
 build/
-.vscode/
+
 .cache/
