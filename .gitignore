@@ -11,5 +11,7 @@
 /Sem2/CMake/mycode-exe/cmake_clang
 
 build/
-
+/Sem2/Calc/out/
+/Sem2/Calc/compile_commands.json
+compile_commands.json
 .cache/

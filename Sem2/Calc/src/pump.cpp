@@ -51,7 +51,8 @@ std::vector<double> pump_properties_t::get_polynomial_coefficients(const approxi
             return {253.6, 1.4 * 10e-3, 7.0 * 10e-6, 2 * 10e-10};
         case approximation_coefficients_t::HM_3600_230:
             return {241.2, 4.6 * 10e-4, 7.8 * 10e-6, 1.3 * 10e-11};
-    return {};
+        default:
+            return {};
     }
 }
 
