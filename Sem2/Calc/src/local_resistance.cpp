@@ -1,6 +1,6 @@
 /// @brief Реализация коэффициентов ξ и решателей PQ/QP для местного сопротивления.
 
-#include "local_resistance.h"
+#include "hydraulic_chain.h"
 
 namespace hydraulics_struct {
 
@@ -122,10 +122,10 @@ void local_resistance_calculator_t::solve_qp() {
 }
 
 void local_resistance_calculator_t::solve_pp() {
-    throw std::runtime_error("Код пока не реализован");
-    /* local_resistanc_task_result.volume_flow = sign_pressure_difference() * std::sqrt((2 * std::pow(pipe_properties.get_pipe_area(), 2) / 
-        (oil_properties.density * local_resistance_properties.calc_local_resistance_coefficient()) * 
-        std::abs(pressure_start - pressure_end))); */
+    const double xi = local_resistance_properties.calc_local_resistance_coefficient();
+    local_resistanc_task_result.volume_flow = sign_pressure_difference() * std::sqrt(
+        2.0 * std::pow(pipe_properties.get_pipe_area(), 2) /
+        (oil_properties.density * xi) * std::abs(pressure_start - pressure_end));
 }
 
 const local_resistanc_task_result_t& local_resistance_calculator_t::get_local_resistanc_task_result() const {
@@ -133,6 +133,45 @@ const local_resistanc_task_result_t& local_resistance_calculator_t::get_local_re
         throw std::runtime_error("Все значения NaN");
     }
     return local_resistanc_task_result;
+}
+
+void local_resistance_calculator_t::apply_pq_boundary(const double pressure_in, const double volume_flow_val) {
+    pressure_start = pressure_in;
+    volume_flow = volume_flow_val;
+}
+
+void local_resistance_calculator_t::apply_qp_boundary(const double pressure_out_val, const double volume_flow_val) {
+    pressure_end = pressure_out_val;
+    volume_flow = volume_flow_val;
+}
+
+void local_resistance_calculator_t::apply_pp_boundary(const double pressure_in, const double pressure_out_val) {
+    pressure_start = pressure_in;
+    pressure_end = pressure_out_val;
+}
+
+double local_resistance_calculator_t::outlet_pressure_after_pq() const {
+    return local_resistanc_task_result.pressure_out;
+}
+
+double local_resistance_calculator_t::inlet_pressure_after_qp() const {
+    return local_resistanc_task_result.pressure_in;
+}
+
+double local_resistance_calculator_t::volume_flow_after_pp() const {
+    return local_resistanc_task_result.volume_flow;
+}
+
+void local_resistance_calculator_t::commit_pq_result(chain_task_result_t& chain_result) const {
+    chain_result.local_resistanc_task_result = local_resistanc_task_result;
+}
+
+void local_resistance_calculator_t::commit_qp_result(chain_task_result_t& chain_result) const {
+    chain_result.local_resistanc_task_result = local_resistanc_task_result;
+}
+
+void local_resistance_calculator_t::commit_pp_result(chain_task_result_t& chain_result) const {
+    chain_result.local_resistanc_task_result = local_resistanc_task_result;
 }
 
 } //namespace

@@ -2,8 +2,16 @@
     "version": 8,
     "configurePresets": [
         {
+            "name": "base-fixed-solvers",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_PREFIX_PATH": "C:/install/fixed_solvers"
+            }
+        },
+        {
             "name": "base-debug",
             "hidden": true,
+            "inherits": "base-fixed-solvers",
             "binaryDir": "${sourceDir}/out/${presetName}",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
@@ -16,6 +24,7 @@
         {
             "name": "base-release",
             "hidden": true,
+            "inherits": "base-fixed-solvers",
             "binaryDir": "${sourceDir}/out/${presetName}",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
@@ -54,7 +63,7 @@
                 "CMAKE_C_COMPILER": "C:/msys64/ucrt64/bin/gcc.exe",
                 "CMAKE_CXX_COMPILER": "C:/msys64/ucrt64/bin/g++.exe",
                 "CMAKE_TOOLCHAIN_FILE": "",
-                "CMAKE_PREFIX_PATH": "C:/msys64/ucrt64",
+                "CMAKE_PREFIX_PATH": "C:/msys64/ucrt64;C:/install/fixed_solvers",
                 "CMAKE_CXX_FLAGS_DEBUG": "-O0 -g3",
                 "CMAKE_C_FLAGS_DEBUG": "-O0 -g3",
                 "CMAKE_INSTALL_PREFIX": "C:/install/klokov_egor7/gcc/Debug"
@@ -74,7 +83,7 @@
                 "CMAKE_C_COMPILER": "C:/msys64/ucrt64/bin/clang.exe",
                 "CMAKE_CXX_COMPILER": "C:/msys64/ucrt64/bin/clang++.exe",
                 "CMAKE_TOOLCHAIN_FILE": "",
-                "CMAKE_PREFIX_PATH": "C:/msys64/ucrt64",
+                "CMAKE_PREFIX_PATH": "C:/msys64/ucrt64;C:/install/fixed_solvers",
                 "CMAKE_CXX_FLAGS_DEBUG": "-O0 -g",
                 "CMAKE_C_FLAGS_DEBUG": "-O0 -g",
                 "CMAKE_INSTALL_PREFIX": "C:/install/klokov_egor7/clang/Debug"
@@ -168,7 +177,7 @@
                 "CMAKE_C_COMPILER": "C:/msys64/ucrt64/bin/gcc.exe",
                 "CMAKE_CXX_COMPILER": "C:/msys64/ucrt64/bin/g++.exe",
                 "CMAKE_TOOLCHAIN_FILE": "",
-                "CMAKE_PREFIX_PATH": "C:/msys64/ucrt64",
+                "CMAKE_PREFIX_PATH": "C:/msys64/ucrt64;C:/install/fixed_solvers",
                 "CMAKE_INSTALL_PREFIX": "C:/install/klokov_egor7/gcc/Release"
             },
             "condition": {
@@ -186,7 +195,7 @@
                 "CMAKE_C_COMPILER": "C:/msys64/ucrt64/bin/clang.exe",
                 "CMAKE_CXX_COMPILER": "C:/msys64/ucrt64/bin/clang++.exe",
                 "CMAKE_TOOLCHAIN_FILE": "",
-                "CMAKE_PREFIX_PATH": "C:/msys64/ucrt64",
+                "CMAKE_PREFIX_PATH": "C:/msys64/ucrt64;C:/install/fixed_solvers",
                 "CMAKE_INSTALL_PREFIX": "C:/install/klokov_egor7/clang/Release"
             },
             "condition": {

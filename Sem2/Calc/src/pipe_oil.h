@@ -127,7 +127,7 @@ struct pipe_task_result_t {
 // Расчёта трубы
 // ============================================================================
 
-class pipe_calculator_t {
+class pipe_calculator_t : public hydro_model_t {
 public:
     pipe_calculator_t(const pipe_profile_t& profile, const pipe_properties_t& pipe, const oil_properties_t& oil)
         // список инициализаторов
@@ -166,8 +166,36 @@ private:
     /// @brief Потеря давленмя на учасике трубы
     double get_diff_pressure(size_t index) const;
 
-    /// @brief Скорость в PP задаче
+    /// @brief Коэффициент λ по Шифринсону при неизвестном расходе
+    double get_shifenson_resistance_coefficient() const;
+
+    /// @brief Скорость по сосредоточенной формуле PP (лекция 5)
     double get_velocity_by_solve_pp() const;
+
+    /// @brief Начальное приближение объёмного расхода для PP
+    double get_pp_initial_volume_flow() const;
+
+    /// @brief Параметры метода Ньютона для PP-задачи
+    struct pp_solver_settings_t {
+        double residual_tolerance{1e-8};
+        double argument_tolerance{1e-8};
+        size_t max_iterations{100};
+        double head_zero_tolerance{1e-12};
+    };
+
+    /// @brief Разность полных напоров на концах трубы (PP)
+    double get_pp_head_difference() const;
+
+    /// @brief Невязка давления r(Q) = p_выход(Q) − p_конец
+    double get_pp_pressure_residual(double volume_flow_trial);
+
+    /// @brief Заполнить результат при нулевом перепаде напора
+    void assign_pp_zero_flow_result();
+
+    /// @brief Проверка граничных условий PP-задачи
+    void validate_pp_inputs() const;
+
+    pp_solver_settings_t pp_solver_settings_;
 
 public:
     double mass_flow{std::numeric_limits<double>::quiet_NaN()};
@@ -177,14 +205,23 @@ public:
     double elevation_start{std::numeric_limits<double>::quiet_NaN()};
     double elevation_end{std::numeric_limits<double>::quiet_NaN()};
 
-    /// @brief Решить задачу №1: найти выходное давление при известном массовом расходе
-    void solve_pq();
+    void solve_pq() override;
+    void solve_qp() override;
+    void solve_pp() override;
 
-    /// @brief Решить задачу №1: найти входное давление при известном массовом расходе
-    void solve_qp();
+    void apply_pq_boundary(double pressure_in, double volume_flow) override;
+    void apply_qp_boundary(double pressure_out, double volume_flow) override;
+    void apply_pp_boundary(double pressure_in, double pressure_out) override;
 
-    /// @brief Решить задачу №2: найти массовый расход при известном перепаде давлений
-    void solve_pp();
+    double suggest_pp_initial_volume_flow() const override;
+
+    double outlet_pressure_after_pq() const override;
+    double inlet_pressure_after_qp() const override;
+    double volume_flow_after_pp() const override;
+
+    void commit_pq_result(chain_task_result_t& chain_result) const override;
+    void commit_qp_result(chain_task_result_t& chain_result) const override;
+    void commit_pp_result(chain_task_result_t& chain_result) const override;
 
     const pipe_task_result_t& get_pipe_task_result() const;
 

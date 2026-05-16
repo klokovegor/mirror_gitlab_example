@@ -1,6 +1,6 @@
 /// @brief Тесты единиц СИ, геометрии трубы, нефти, калькулятора трубы и экспорта CSV.
 
-#include "pipe_oil.h"
+#include "hydraulic_chain.h"
 
 #include "gtest/gtest.h"
 
@@ -169,17 +169,59 @@ TEST(PipeCalculator, ResultUnavailableBeforeSolve) {
     EXPECT_THROW(static_cast<void>(calc.get_pipe_task_result()), std::runtime_error);
 }
 
-/// @brief Проверяет, что solve_pp пока выбрасывает исключение.
-TEST(PipeCalculator, SolvePpIsNotImplementedYet) {
+/// @brief Проверяет PP-расчёт при нулевом перепаде полных напоров.
+TEST(PipeCalculator, SolvePpZeroFlowWhenHeadDifferenceIsZero) {
     // Arrange
     const pipe_profile_t profile = pipe_profile_t::create_profile({0.0, 1.0}, {0.0, 0.0});
     const pipe_properties_t pipe = pipe_properties_t::create_pipe(0.1, 0.005);
     const oil_properties_t oil = oil_properties_t::create_oil(850.0, 1e-5);
     pipe_calculator_t calc(profile, pipe, oil);
     calc.pressure_start = 200000.0;
-    calc.pressure_end = 150000.0;
+    calc.pressure_end = 200000.0;
     // Act & Assert
-    EXPECT_THROW(calc.solve_pp(), std::runtime_error);
+    ASSERT_NO_THROW(calc.solve_pp());
+    EXPECT_NEAR(calc.volume_flow, 0.0, 1e-12);
+    EXPECT_NEAR(calc.get_pipe_task_result().volume_flow, 0.0, 1e-12);
+}
+
+/// @brief Проверяет восстановление расхода PP после прямого расчёта PQ.
+TEST(PipeCalculator, SolvePpRoundTripFromPq) {
+    // Arrange
+    const pipe_profile_t profile = pipe_profile_t::create_profile(
+        {0.0, 50.0, 100.0, 150.0}, {10.0, 12.0, 15.0, 18.0});
+    const pipe_properties_t pipe = pipe_properties_t::create_pipe(0.2, 0.005);
+    const oil_properties_t oil = oil_properties_t::create_oil(850.0, 1e-5);
+    pipe_calculator_t calc(profile, pipe, oil);
+    calc.pressure_start = 500000.0;
+    calc.volume_flow = 0.04;
+    calc.solve_pq();
+    const double q_ref = calc.volume_flow;
+    const double p_end = calc.get_pipe_task_result().pressure_profile.back();
+    calc.volume_flow = std::numeric_limits<double>::quiet_NaN();
+    calc.pressure_end = p_end;
+    // Act & Assert
+    ASSERT_NO_THROW(calc.solve_pp());
+    EXPECT_NEAR(calc.volume_flow, q_ref, 1e-4);
+    EXPECT_NEAR(calc.get_pipe_task_result().volume_flow, q_ref, 1e-4);
+}
+
+/// @brief Проверяет согласованность выходного давления PP с граничным условием.
+TEST(PipeCalculator, SolvePpEndPressureMatchesBoundary) {
+    // Arrange
+    const pipe_profile_t profile = pipe_profile_t::create_profile(
+        {0.0, 80.0, 160.0}, {5.0, 8.0, 11.0});
+    const pipe_properties_t pipe = pipe_properties_t::create_pipe(0.15, 0.005);
+    const oil_properties_t oil = oil_properties_t::create_oil(870.0, 1.2e-5);
+    pipe_calculator_t calc(profile, pipe, oil);
+    calc.pressure_start = 400000.0;
+    calc.pressure_end = 280000.0;
+    // Act
+    ASSERT_NO_THROW(calc.solve_pp());
+    const double q_pp = calc.volume_flow;
+    calc.volume_flow = q_pp;
+    calc.solve_pq();
+    // Assert
+    EXPECT_NEAR(calc.get_pipe_task_result().pressure_profile.back(), calc.pressure_end, 1.0);
 }
 
 /// @brief Проверяет отказ записи CSV для пустых и некорректных путей.
@@ -236,55 +278,6 @@ TEST(PipeTaskCsv, WritesProfilesToExeRelativeProfilesDir) {
         ASSERT_TRUE(out.is_open());
         for (size_t i = 0; i < profile.get_point_count(); ++i) {
             out << profile.coordinates[i] << ';' << profile.elevations[i] << ';' << calc.pressure_end << '\n';
-        }
-        ASSERT_TRUE(out.good());
-    }
-    // Assert
-    ASSERT_TRUE(std::filesystem::exists(head_csv));
-    ASSERT_TRUE(std::filesystem::exists(pressure_csv));
-}
-
-/// @brief Готовит постановку PP-задачи, ожидает исключение solve_pp и сохраняет профили в /profiles.
-TEST(PipeTaskCsv, WritesSolvePpScenarioProfilesToExeRelativeProfilesDir) {
-    // Arrange
-    const pipe_profile_t profile = pipe_profile_t::create_profile(
-        {0.0, 260.0, 520.0, 780.0, 1040.0, 1300.0, 1560.0, 1820.0, 2080.0, 2340.0, 2600.0},
-        {52.0, 52.7, 53.4, 54.1, 54.8, 55.5, 56.2, 56.9, 57.6, 58.3, 59.0}
-    );
-    const pipe_properties_t pipe = pipe_properties_t::create_pipe(diameter_si(200.0, "мм"), 0.003);
-    const oil_properties_t oil = oil_properties_t::create_oil(735.0, kinematic_viscosity_si(0.68, "сСт"));
-    ASSERT_NO_THROW(profile.check_parameters());
-    ASSERT_NO_THROW(pipe.check_parameters());
-    ASSERT_TRUE(std::isfinite(oil.kinematic_viscosity));
-    pipe_calculator_t calc(profile, pipe, oil);
-    calc.pressure_start = pressure_si(4.1, "кгс/см^2");
-    calc.pressure_end = pressure_si(1.6, "кгс/см^2");
-    const std::filesystem::path output_dir = std::filesystem::current_path() / "profiles";
-    std::filesystem::create_directories(output_dir);
-    const std::filesystem::path head_csv = output_dir / "h_profile_pp_2.csv";
-    const std::filesystem::path pressure_csv = output_dir / "p_profile_pp_2.csv";
-    // Act
-    EXPECT_THROW(calc.solve_pp(), std::runtime_error);
-    ASSERT_TRUE(write_head_profile_csv(head_csv.string()));
-    ASSERT_TRUE(write_pressure_profile_csv(pressure_csv.string()));
-    {
-        std::ofstream out(head_csv, std::ios::app);
-        ASSERT_TRUE(out.is_open());
-        for (size_t i = 0; i < profile.get_point_count(); ++i) {
-            const double t = static_cast<double>(i) / static_cast<double>(profile.get_point_count() - 1);
-            const double pressure = calc.pressure_start + (calc.pressure_end - calc.pressure_start) * t;
-            const double head = pressure / (oil.density * gravity_acceleration) + profile.elevations[i];
-            out << profile.coordinates[i] << ';' << profile.elevations[i] << ';' << head << '\n';
-        }
-        ASSERT_TRUE(out.good());
-    }
-    {
-        std::ofstream out(pressure_csv, std::ios::app);
-        ASSERT_TRUE(out.is_open());
-        for (size_t i = 0; i < profile.get_point_count(); ++i) {
-            const double t = static_cast<double>(i) / static_cast<double>(profile.get_point_count() - 1);
-            const double pressure = calc.pressure_start + (calc.pressure_end - calc.pressure_start) * t;
-            out << profile.coordinates[i] << ';' << profile.elevations[i] << ';' << pressure << '\n';
         }
         ASSERT_TRUE(out.good());
     }

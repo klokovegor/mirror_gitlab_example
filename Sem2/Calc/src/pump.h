@@ -70,7 +70,7 @@ struct pump_task_result_t {
 // =============================================================================
 
 /// @brief Расчёт напора и давлений одного насоса по кривой и законам подобия частоты.
-class pump_calculator_t {
+class pump_calculator_t : public hydro_model_t {
 public:
     /// @brief Фиксирует параметры насоса и свойства перекачиваемой жидкости.
     pump_calculator_t(const pump_properties_t& pump_properties, const oil_properties_t& oil)
@@ -106,16 +106,22 @@ public:
     double pressure_start{std::numeric_limits<double>::quiet_NaN()};
     double pressure_end{std::numeric_limits<double>::quiet_NaN()};
 
-    /// @brief PQ для насоса
-    void solve_pq();
+    void solve_pq() override;
+    void solve_qp() override;
+    void solve_pp() override;
 
-    /// @brief QP для насоса
-    void solve_qp();
+    void apply_pq_boundary(double pressure_in, double volume_flow) override;
+    void apply_qp_boundary(double pressure_out, double volume_flow) override;
+    void apply_pp_boundary(double pressure_in, double pressure_out) override;
 
-    /// @brief PP для насоса
-    void solve_pp();
+    double outlet_pressure_after_pq() const override;
+    double inlet_pressure_after_qp() const override;
+    double volume_flow_after_pp() const override;
 
-    /// @brief Возврат результата
+    void commit_pq_result(chain_task_result_t& chain_result) const override;
+    void commit_qp_result(chain_task_result_t& chain_result) const override;
+    void commit_pp_result(chain_task_result_t& chain_result) const override;
+
     const pump_task_result_t& get_pump_task_result() const;
 
 private:
@@ -155,7 +161,7 @@ struct pump_station_result_t {
 // =============================================================================
 
 /// @brief Расчёт последовательно включённых насосов как единой станции.
-class pump_station_calculator_t {
+class pump_station_calculator_t : public hydro_model_t {
 public:
     /// @brief Фиксирует состав станции и свойства жидкости.
     pump_station_calculator_t(const pump_station_properties_t pumps, const oil_properties_t& oil)
@@ -184,16 +190,22 @@ public:
     double pressure_start{std::numeric_limits<double>::quiet_NaN()};
     double pressure_end{std::numeric_limits<double>::quiet_NaN()};
 
-    /// @brief PQ для насоса
-    void solve_pq();
+    void solve_pq() override;
+    void solve_qp() override;
+    void solve_pp() override;
 
-    /// @brief QP для насоса
-    void solve_qp();
+    void apply_pq_boundary(double pressure_in, double volume_flow) override;
+    void apply_qp_boundary(double pressure_out, double volume_flow) override;
+    void apply_pp_boundary(double pressure_in, double pressure_out) override;
 
-    /// @brief PP для насоса
-    void solve_pp();
+    double outlet_pressure_after_pq() const override;
+    double inlet_pressure_after_qp() const override;
+    double volume_flow_after_pp() const override;
 
-    /// @brief Возврат результата
+    void commit_pq_result(chain_task_result_t& chain_result) const override;
+    void commit_qp_result(chain_task_result_t& chain_result) const override;
+    void commit_pp_result(chain_task_result_t& chain_result) const override;
+
     const pump_station_result_t& get_pump_station_result() const;
 
 private:

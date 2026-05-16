@@ -81,7 +81,7 @@ struct local_resistanc_task_result_t {
 // =============================================================================
 
 /// @brief Гидравлический расчёт единичного местного сопротивления на участке заданной трубы.
-class local_resistance_calculator_t {
+class local_resistance_calculator_t : public hydro_model_t {
 public:
     /// @brief Связывает геометрию трубы, свойства нефти и параметры арматуры.
     local_resistance_calculator_t(const pipe_properties_t& pipe_properties, const oil_properties_t& oil_properties, const local_resistance_properties_t& local_resistance_properties)
@@ -105,16 +105,22 @@ public:
     double pressure_end{std::numeric_limits<double>::quiet_NaN()};
     double volume_flow{std::numeric_limits<double>::quiet_NaN()};
 
-    /// @brief PQ с местным сопротивлением
-    void solve_pq();
+    void solve_pq() override;
+    void solve_qp() override;
+    void solve_pp() override;
 
-    /// @brief QP с местным сопротивлением
-    void solve_qp();
+    void apply_pq_boundary(double pressure_in, double volume_flow) override;
+    void apply_qp_boundary(double pressure_out, double volume_flow) override;
+    void apply_pp_boundary(double pressure_in, double pressure_out) override;
 
-    /// @brief PP с местным сопротивлением
-    void solve_pp();
+    double outlet_pressure_after_pq() const override;
+    double inlet_pressure_after_qp() const override;
+    double volume_flow_after_pp() const override;
 
-    /// @brief Возврат результата
+    void commit_pq_result(chain_task_result_t& chain_result) const override;
+    void commit_qp_result(chain_task_result_t& chain_result) const override;
+    void commit_pp_result(chain_task_result_t& chain_result) const override;
+
     const local_resistanc_task_result_t& get_local_resistanc_task_result() const;
 
 private:

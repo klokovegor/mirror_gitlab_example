@@ -1,6 +1,6 @@
 /// @brief Тесты коэффициентов ξ, фабрик свойств и калькулятора местного сопротивления.
 
-#include "local_resistance.h"
+#include "hydraulic_chain.h"
 
 #include "gtest/gtest.h"
 
@@ -256,8 +256,8 @@ TEST(LocalResistanceCalculator, SolveQpThrowsOnNegativePressureIn) {
     EXPECT_THROW(calc.solve_qp(), std::runtime_error);
 }
 
-/// @brief Проверяет, что PP-расчёт местного сопротивления пока не реализован и выбрасывает исключение.
-TEST(LocalResistanceCalculator, SolvePpIsNotImplementedYet) {
+/// @brief Проверяет PP-расчёт местного сопротивления по формуле лекции.
+TEST(LocalResistanceCalculator, SolvePpMatchesFormula) {
     // Arrange
     const pipe_properties_t pipe = pipe_properties_t::create_pipe(0.10, 0.005);
     const oil_properties_t oil = oil_properties_t::create_oil(850.0, 1e-5);
@@ -266,6 +266,12 @@ TEST(LocalResistanceCalculator, SolvePpIsNotImplementedYet) {
     local_resistance_calculator_t calc(pipe, oil, local_resistance);
     calc.pressure_start = 300000.0;
     calc.pressure_end = 150000.0;
+    const double xi = local_resistance.calc_local_resistance_coefficient();
+    const int sign = (calc.pressure_start - calc.pressure_end >= 0) ? 1 : -1;
+    const double expected = sign * std::sqrt(
+        2.0 * std::pow(pipe.get_pipe_area(), 2) /
+        (oil.density * xi) * std::abs(calc.pressure_start - calc.pressure_end));
     // Act & Assert
-    EXPECT_THROW(calc.solve_pp(), std::runtime_error);
+    ASSERT_NO_THROW(calc.solve_pp());
+    EXPECT_NEAR(calc.get_local_resistanc_task_result().volume_flow, expected, 1e-6);
 }

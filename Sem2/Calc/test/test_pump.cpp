@@ -1,6 +1,6 @@
 /// @brief Тесты утилит полинома, параметров насоса, калькулятора и насосной станции.
 
-#include "pump.h"
+#include "hydraulic_chain.h"
 
 #include "gtest/gtest.h"
 
@@ -147,14 +147,27 @@ TEST(PumpCalculator, SolveQpThrowsOnNegativePressureIn) {
     EXPECT_THROW(calc.solve_qp(), std::runtime_error);
 }
 
-/// @brief Проверяет, что PP-расчёт насоса пока не реализован и выбрасывает исключение.
-TEST(PumpCalculator, SolvePpIsNotImplementedYet) {
+/// @brief Проверяет PP-расчёт насоса по двучленной QH-характеристике (лекция, с. 35).
+TEST(PumpCalculator, SolvePpMatchesHeadFormula) {
     // Arrange
-    pump_calculator_t calc(make_pump(), make_oil());
-    calc.pressure_start = 100000.0;
-    calc.pressure_end = 200000.0;
-    // Act & Assert
-    EXPECT_THROW(calc.solve_pp(), std::runtime_error);
+    const auto pump = make_pump();
+    const auto oil = make_oil();
+    const auto coeffs = pump_properties_t::get_polynomial_coefficients(pump.approximation_coeff);
+    ASSERT_EQ(coeffs.size(), 2u);
+    pump_calculator_t calc(pump, oil);
+    calc.pressure_start = 120000.0;
+    calc.pressure_end = 450000.0;
+    const double frequency_ratio = pump.current_frequency / pump.nominal_frequency;
+    const double diff_head = (calc.pressure_end - calc.pressure_start) /
+        (oil.density * gravity_acceleration);
+    const int sign = (coeffs[0] * frequency_ratio * frequency_ratio - diff_head >= 0) ? 1 : -1;
+    const double expected = sign * std::sqrt(std::abs(
+        (coeffs[0] * frequency_ratio * frequency_ratio - diff_head) / coeffs[1]));
+    // Act
+    calc.solve_pp();
+    // Assert
+    EXPECT_NEAR(calc.get_pump_task_result().volume_flow, expected, 1e-6);
+    EXPECT_NEAR(calc.volume_flow_after_pp(), expected, 1e-6);
 }
 
 /// @brief Проверяет, что фабрика насосной станции сохраняет количество насосов.
@@ -236,13 +249,28 @@ TEST(PumpStationCalculator, SolveQpDoesNotThrowForConfiguredInputs) {
     EXPECT_NO_THROW(calc.solve_qp());
 }
 
-/// @brief Проверяет, что PP-расчёт насосной станции пока не реализован и выбрасывает исключение.
-TEST(PumpStationCalculator, SolvePpIsNotImplementedYet) {
+/// @brief Проверяет PP-расчёт насосной станции по суммарной двучленной QH-характеристике.
+TEST(PumpStationCalculator, SolvePpMatchesNominalHeadFormula) {
     // Arrange
     const auto station = pump_station_properties_t::create_pump_station({make_pump()});
-    pump_station_calculator_t calc(station, make_oil());
+    const auto oil = make_oil();
+    const auto coeffs = station.get_polynomial_coefficients();
+    ASSERT_GE(coeffs.size(), 2u);
+    pump_station_calculator_t calc(station, oil);
     calc.pressure_start = 100000.0;
-    calc.pressure_end = 200000.0;
-    // Act & Assert
-    EXPECT_THROW(calc.solve_pp(), std::runtime_error);
+    calc.pressure_end = 380000.0;
+    const double diff_head = (calc.pressure_end - calc.pressure_start) /
+        (oil.density * gravity_acceleration);
+    const int sign = (coeffs[0] - diff_head >= 0) ? 1 : -1;
+    const double expected = sign * std::sqrt(std::abs((coeffs[0] - diff_head) / coeffs[1]));
+    // Act
+    calc.solve_pp();
+    const double actual = calc.volume_flow_after_pp();
+    // Assert
+    if (coeffs.size() == 2u) {
+        EXPECT_NEAR(calc.get_pump_station_result().volume_flow, expected, 1e-6);
+        EXPECT_NEAR(actual, expected, 1e-6);
+    } else {
+        EXPECT_TRUE(std::isnan(actual));
+    }
 }

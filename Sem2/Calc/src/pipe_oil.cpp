@@ -1,6 +1,8 @@
 /// @brief Реализация переводов единиц, геометрии трубы, профиля давления и записи CSV.
 
-#include "pipe_oil.h"
+#include "hydraulic_chain.h"
+
+#include <fixed/fixed.h>
 
 namespace hydraulics_struct {
 
@@ -219,10 +221,11 @@ double pipe_calculator_t::get_reynolds_number() const {
     if (std::isnan(oil_properties.kinematic_viscosity) || std::isnan(pipe_properties.inner_diameter)) {
         return std::numeric_limits<double>::quiet_NaN();
     }
-    if (std::isnan(get_velocity())) {
+    const double velocity = get_velocity();
+    if (std::isnan(velocity)) {
         throw std::runtime_error("Скорость не посчитана");
     }
-    return (get_velocity() * pipe_properties.inner_diameter) / oil_properties.kinematic_viscosity;
+    return (std::abs(velocity) * pipe_properties.inner_diameter) / oil_properties.kinematic_viscosity;
 }
 
 double pipe_calculator_t::get_total_head(size_t index, double pressure) const {
@@ -242,20 +245,28 @@ int pipe_calculator_t::sign_head_difference() const {
     return (get_total_head(0, pressure_start) - get_total_head(profile.get_point_count() - 1, pressure_end) >= 0) ? 1 : -1;
 }
 
+double pipe_calculator_t::get_shifenson_resistance_coefficient() const {
+    if (std::isnan(pipe_properties.get_relative_roughness())) {
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+    return 0.11 * std::pow(pipe_properties.get_relative_roughness(), 0.25);
+}
+
 double pipe_calculator_t::get_hydraulic_resistance_coefficient() const {
-    if (get_reynolds_number() <= 0) {
-        throw std::runtime_error("Отрицательное число Рейнольдса");
+    if (std::isnan(get_volume_flow_rate())) {
+        return get_shifenson_resistance_coefficient();
     }
-    if (std::isnan(get_reynolds_number())) {
-        if (std::isnan(pipe_properties.get_relative_roughness())) {
-            return std::numeric_limits<double>::quiet_NaN();
-        }
-        return 0.11 * std::pow(pipe_properties.get_relative_roughness(), 0.25);
+    const double reynolds_number = get_reynolds_number();
+    if (std::isnan(reynolds_number)) {
+        return get_shifenson_resistance_coefficient();
     }
-    if (get_reynolds_number() < 2320) {
-        return 64.0 / get_reynolds_number();
+    if (reynolds_number <= 0.0) {
+        return get_shifenson_resistance_coefficient();
     }
-    return 0.11 * std::pow((68.0 / get_reynolds_number() + pipe_properties.get_relative_roughness()), 0.25);
+    if (reynolds_number < 2320) {
+        return 64.0 / reynolds_number;
+    }
+    return 0.11 * std::pow((68.0 / reynolds_number + pipe_properties.get_relative_roughness()), 0.25);
 }
 
 double pipe_calculator_t::get_volume_flow_rate() const {
@@ -294,13 +305,19 @@ double pipe_calculator_t::get_diff_pressure(size_t index) const {
 }
 
 double pipe_calculator_t::get_velocity_by_solve_pp() const {
-    return sign_head_difference() * std::sqrt((2 * gravity_acceleration * 
-        pipe_properties.inner_diameter) / (get_hydraulic_resistance_coefficient() * profile.get_length(0)) * 
-        std::abs(get_total_head(0, pressure_start) - get_total_head(profile.get_point_count() - 1, pressure_end)));
+    const double lambda = get_shifenson_resistance_coefficient();
+    const double pipe_length = profile.get_length(0);
+    return static_cast<double>(sign_head_difference()) * std::sqrt(
+        (2.0 * gravity_acceleration * pipe_properties.inner_diameter) /
+        (lambda * pipe_length) * std::abs(get_pp_head_difference()));
+}
+
+double pipe_calculator_t::get_pp_initial_volume_flow() const {
+    return get_velocity_by_solve_pp() * pipe_properties.get_pipe_area();
 }
 
 void pipe_calculator_t::solve_pq() {
-    for (size_t i; i < profile.get_point_count() - 1; i++) {
+    for (size_t i = 0; i < profile.get_point_count() - 1; i++) {
         if (i == 0) {
             pipe_task_result.pressure_profile.push_back(pressure_start);
             pipe_task_result.head_profile.push_back(get_total_head(i, pressure_start));
@@ -333,9 +350,70 @@ void pipe_calculator_t::solve_qp() {
     }
 }
 
+void pipe_calculator_t::validate_pp_inputs() const {
+    if (std::isnan(pressure_start) || std::isnan(pressure_end)) {
+        throw std::runtime_error("Не заданы граничные давления");
+    }
+    profile.check_parameters();
+    pipe_properties.check_parameters();
+}
+
+double pipe_calculator_t::get_pp_head_difference() const {
+    return get_total_head(0, pressure_start) -
+        get_total_head(profile.get_point_count() - 1, pressure_end);
+}
+
+double pipe_calculator_t::get_pp_pressure_residual(const double volume_flow_trial) {
+    volume_flow = volume_flow_trial;
+    pipe_task_result.pressure_profile.clear();
+    pipe_task_result.head_profile.clear();
+    solve_pq();
+    return pipe_task_result.pressure_profile.back() - pressure_end;
+}
+
+void pipe_calculator_t::assign_pp_zero_flow_result() {
+    volume_flow = 0.0;
+    pipe_task_result.volume_flow = 0.0;
+    pipe_task_result.pressure_profile.clear();
+    pipe_task_result.head_profile.clear();
+    const double head_const = get_total_head(0, pressure_start);
+    for (size_t i = 0; i < profile.get_point_count(); ++i) {
+        const double pressure = oil_properties.density * gravity_acceleration *
+            (head_const - profile.elevations[i]);
+        pipe_task_result.pressure_profile.push_back(pressure);
+        pipe_task_result.head_profile.push_back(head_const);
+    }
+}
+
 void pipe_calculator_t::solve_pp() {
-    throw std::runtime_error("Код пока не реализован");
-    /* pipe_task_result.volume_flow = get_velocity_by_solve_pp() * pipe_properties.get_pipe_area(); */
+    validate_pp_inputs();
+
+    if (std::abs(get_pp_head_difference()) < pp_solver_settings_.head_zero_tolerance) {
+        assign_pp_zero_flow_result();
+        return;
+    }
+
+    fixed_scalar_wrapper_t equation(
+        [this](const double q) { return get_pp_pressure_residual(q); },
+        pp_solver_settings_.residual_tolerance
+    );
+    fixed_solver_parameters_t<1> parameters;
+    parameters.iteration_count = pp_solver_settings_.max_iterations;
+    parameters.argument_increment_norm = pp_solver_settings_.argument_tolerance;
+    parameters.residuals_norm = pp_solver_settings_.residual_tolerance;
+    parameters.residuals_norm_allow_early_exit = true;
+
+    fixed_solver_result_t<1> result;
+    fixed_newton_raphson<1>::solve(equation, get_pp_initial_volume_flow(), parameters, &result, nullptr);
+    if (result.result_code != numerical_result_code_t::Converged) {
+        throw std::runtime_error("solve_pp: метод Ньютона не сошёлся");
+    }
+
+    volume_flow = result.argument;
+    pipe_task_result.volume_flow = volume_flow;
+    pipe_task_result.pressure_profile.clear();
+    pipe_task_result.head_profile.clear();
+    solve_pq();
 }
 
 const pipe_task_result_t& pipe_calculator_t::get_pipe_task_result() const {
@@ -345,6 +423,55 @@ const pipe_task_result_t& pipe_calculator_t::get_pipe_task_result() const {
         throw std::runtime_error("Вызов solve_pq() или solve_pp() не произошел");
     }
     return pipe_task_result;
+}
+
+void pipe_calculator_t::apply_pq_boundary(const double pressure_in, const double volume_flow_val) {
+    pressure_start = pressure_in;
+    volume_flow = volume_flow_val;
+}
+
+void pipe_calculator_t::apply_qp_boundary(const double pressure_out_val, const double volume_flow_val) {
+    pressure_end = pressure_out_val;
+    volume_flow = volume_flow_val;
+}
+
+void pipe_calculator_t::apply_pp_boundary(const double pressure_in, const double pressure_out_val) {
+    pressure_start = pressure_in;
+    pressure_end = pressure_out_val;
+}
+
+double pipe_calculator_t::outlet_pressure_after_pq() const {
+    if (pipe_task_result.pressure_profile.empty()) {
+        throw std::runtime_error("Профиль давления трубы пуст после solve_pq");
+    }
+    return pipe_task_result.pressure_profile.back();
+}
+
+double pipe_calculator_t::inlet_pressure_after_qp() const {
+    if (pipe_task_result.pressure_profile.empty()) {
+        throw std::runtime_error("Профиль давления трубы пуст после solve_qp");
+    }
+    return pipe_task_result.pressure_profile.front();
+}
+
+double pipe_calculator_t::suggest_pp_initial_volume_flow() const {
+    return get_pp_initial_volume_flow();
+}
+
+double pipe_calculator_t::volume_flow_after_pp() const {
+    return pipe_task_result.volume_flow;
+}
+
+void pipe_calculator_t::commit_pq_result(chain_task_result_t& chain_result) const {
+    chain_result.pipe_task_result = pipe_task_result;
+}
+
+void pipe_calculator_t::commit_qp_result(chain_task_result_t& chain_result) const {
+    chain_result.pipe_task_result = pipe_task_result;
+}
+
+void pipe_calculator_t::commit_pp_result(chain_task_result_t& chain_result) const {
+    chain_result.pipe_task_result = pipe_task_result;
 }
 
 // ============================================================================

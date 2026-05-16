@@ -1,6 +1,6 @@
 /// @brief Реализация полиномов насоса, станции и постановок PQ/QP.
 
-#include "pump.h"
+#include "hydraulic_chain.h"
 
 namespace hydraulics_struct {
 
@@ -174,8 +174,7 @@ void pump_calculator_t::solve_qp() {
 }
 
 void pump_calculator_t::solve_pp() {
-    throw std::runtime_error("Код пока не реализован");
-    /* pump_task_result.volume_flow = get_volume_flow_from_head_at_current_frequency(); */
+    pump_task_result.volume_flow = get_volume_flow_from_head_at_current_frequency();
 }
 
 const pump_task_result_t& pump_calculator_t::get_pump_task_result() const {
@@ -183,6 +182,45 @@ const pump_task_result_t& pump_calculator_t::get_pump_task_result() const {
         throw std::runtime_error("Все значения NaN");
     }
     return pump_task_result;
+}
+
+void pump_calculator_t::apply_pq_boundary(const double pressure_in, const double volume_flow_val) {
+    pressure_start = pressure_in;
+    volume_flow = volume_flow_val;
+}
+
+void pump_calculator_t::apply_qp_boundary(const double pressure_out_val, const double volume_flow_val) {
+    pressure_end = pressure_out_val;
+    volume_flow = volume_flow_val;
+}
+
+void pump_calculator_t::apply_pp_boundary(const double pressure_in, const double pressure_out_val) {
+    pressure_start = pressure_in;
+    pressure_end = pressure_out_val;
+}
+
+double pump_calculator_t::outlet_pressure_after_pq() const {
+    return pump_task_result.pressure_out;
+}
+
+double pump_calculator_t::inlet_pressure_after_qp() const {
+    return pump_task_result.pressure_in;
+}
+
+double pump_calculator_t::volume_flow_after_pp() const {
+    return pump_task_result.volume_flow;
+}
+
+void pump_calculator_t::commit_pq_result(chain_task_result_t& chain_result) const {
+    chain_result.pump_task_result = pump_task_result;
+}
+
+void pump_calculator_t::commit_qp_result(chain_task_result_t& chain_result) const {
+    chain_result.pump_task_result = pump_task_result;
+}
+
+void pump_calculator_t::commit_pp_result(chain_task_result_t& chain_result) const {
+    chain_result.pump_task_result = pump_task_result;
 }
 
 // =============================================================================
@@ -262,7 +300,8 @@ double pump_station_calculator_t::get_volume_flow_from_head_nominal() const {
         if (std::isnan(polynomial_coefficients[0]) || std::isnan(polynomial_coefficients[1])) {
             return std::numeric_limits<double>::quiet_NaN();
         }
-        return sign_for_volume_flow(polynomial_coefficients[0], get_diff_head(), 1) * std::sqrt(std::abs((polynomial_coefficients[0] - get_diff_head()) / polynomial_coefficients[1]));
+        return sign_for_volume_flow(polynomial_coefficients[0], get_diff_head(), 1) * 
+            std::sqrt(std::abs((polynomial_coefficients[0] - get_diff_head()) / polynomial_coefficients[1]));
     }
     if (polynomial_coefficients.size() == 3) {
         throw std::runtime_error("Нахождение расхода из полинома на данный момент нам не известно");
@@ -288,8 +327,7 @@ void pump_station_calculator_t::solve_qp() {
 }
 
 void pump_station_calculator_t::solve_pp() {
-    throw std::runtime_error("Код пока не реализован");
-    /* pump_station_result.volume_flow = get_volume_flow_from_head_nominal(); */
+    pump_station_result.volume_flow = get_volume_flow_from_head_nominal();
 }
 
 const pump_station_result_t& pump_station_calculator_t::get_pump_station_result() const {
@@ -297,6 +335,45 @@ const pump_station_result_t& pump_station_calculator_t::get_pump_station_result(
         throw std::runtime_error("Все значения NaN");
     }
     return pump_station_result;
+}
+
+void pump_station_calculator_t::apply_pq_boundary(const double pressure_in, const double volume_flow_val) {
+    pressure_start = pressure_in;
+    volume_flow = volume_flow_val;
+}
+
+void pump_station_calculator_t::apply_qp_boundary(const double pressure_out_val, const double volume_flow_val) {
+    pressure_end = pressure_out_val;
+    volume_flow = volume_flow_val;
+}
+
+void pump_station_calculator_t::apply_pp_boundary(const double pressure_in, const double pressure_out_val) {
+    pressure_start = pressure_in;
+    pressure_end = pressure_out_val;
+}
+
+double pump_station_calculator_t::outlet_pressure_after_pq() const {
+    return pump_station_result.pressure_out;
+}
+
+double pump_station_calculator_t::inlet_pressure_after_qp() const {
+    return pump_station_result.pressure_in;
+}
+
+double pump_station_calculator_t::volume_flow_after_pp() const {
+    return pump_station_result.volume_flow;
+}
+
+void pump_station_calculator_t::commit_pq_result(chain_task_result_t& chain_result) const {
+    chain_result.pump_station_result = pump_station_result;
+}
+
+void pump_station_calculator_t::commit_qp_result(chain_task_result_t& chain_result) const {
+    chain_result.pump_station_result = pump_station_result;
+}
+
+void pump_station_calculator_t::commit_pp_result(chain_task_result_t& chain_result) const {
+    chain_result.pump_station_result = pump_station_result;
 }
 
 } //namespace
