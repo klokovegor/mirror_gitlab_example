@@ -17,6 +17,7 @@ add_library(Tasks STATIC
     src/numerical_methods.cpp
     src/numerical_methods.h
     src/logger_base.h
+    src/tz36_chain_helpers.h
 )
 
 add_executable(Tests
@@ -26,6 +27,7 @@ add_executable(Tests
     test/test_pump.cpp
     test/test_numerical_methods.cpp
     test/test_logger_base.cpp
+    test/test_tz36_branching.cpp
 )
 
 find_package(GTest REQUIRED)
